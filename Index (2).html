@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SIM Hidayatullah Mamuju Tengah</title>
+    
+    <link rel="manifest" href='data:application/manifest+json,{"name":"SIM Hidayatullah Mamuju Tengah","short_name":"SIM Hidayatullah","display":"standalone","background_color":"#f3f4f6","theme_color":"#0b9d58"}'>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #0b9d58;
+            --primary-light: rgba(11, 157, 88, 0.1);
+            --bg-color: #f3f4f6;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(145, 87%, 33%, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(210, 100%, 56%, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #333;
+            margin: 0; padding: 0; min-height: 100vh;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 10px 14px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--primary-light); }
+
+        .btn-primary {
+            background: var(--primary-color); color: white; border-radius: 8px; padding: 10px 20px;
+            font-weight: 500; transition: all 0.3s ease; border: none; cursor: pointer;
+        }
+        .btn-primary:hover { background: #097d46; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(11, 157, 88, 0.3); }
+
+        #app-container { display: flex; height: 100vh; width: 100%; }
+
+        #sidebar {
+            width: 280px; height: 100vh; position: fixed; left: 0; top: 0; padding: 24px;
+            display: flex; flex-direction: column; gap: 8px; z-index: 50; border-radius: 0 24px 24px 0;
+        }
+
+        .nav-item {
+            padding: 14px 16px; border-radius: 12px; color: #4b5563; font-weight: 500;
+            display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease;
+        }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.5); color: var(--primary-color); }
+        .nav-item.active { background: var(--primary-color); color: white; box-shadow: 0 4px 12px rgba(11, 157, 88, 0.3); }
+
+        #main-content {
+            margin-left: 280px; padding: 32px; width: calc(100% - 280px); height: 100vh; overflow-y: auto;
+        }
+
+        .page-view { display: none; animation: fadeIn 0.4s ease; }
+        .page-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #bottom-nav {
+            display: none; position: fixed; bottom: 16px; left: 16px; right: 16px;
+            border-radius: 20px; padding: 12px; justify-content: space-around; z-index: 50;
+        }
+        .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #6b7280; font-size: 0.75rem; cursor: pointer; }
+        .bottom-nav-item.active { color: var(--primary-color); }
+
+        @media (max-width: 768px) {
+            #sidebar { display: none; }
+            #bottom-nav { display: flex; }
+            #main-content { margin-left: 0; width: 100%; padding: 20px 16px 100px 16px; }
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print-area, #receipt-print-area * { visibility: visible; }
+            #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SCREEN: LOGIN -->
+    <div id="login-screen" class="fixed inset-0 flex items-center justify-center bg-gray-100 z-50">
+        <div class="glass-card p-8 w-full max-w-md mx-4">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-3xl shadow-lg"><i class="fas fa-mosque"></i></div>
+                <h1 class="text-2xl font-bold text-gray-800">SIM Hidayatullah</h1>
+                <p class="text-sm text-gray-500">Mamuju Tengah</p>
+            </div>
+            
+            <div id="login-error" class="hidden bg-red-100 text-red-700 px-4 py-3 rounded mb-4 text-sm"></div>
+
+            <div class="flex mb-6 border-b border-gray-200">
+                <button onclick="switchLoginTab('admin')" id="tab-admin" class="flex-1 py-2 font-medium border-b-2 border-green-600 text-green-600">Admin</button>
+                <button onclick="switchLoginTab('member')" id="tab-member" class="flex-1 py-2 font-medium border-b-2 border-transparent text-gray-500">Pengurus/Kader</button>
+            </div>
+
+            <!-- Form Admin (Auth) -->
+            <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Email Admin</label>
+                    <input type="email" id="admin-email" class="glass-input" required placeholder="admin@hidayatullah.or.id">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Kata Sandi</label>
+                    <input type="password" id="admin-password" class="glass-input" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary w-full" id="admin-btn">Masuk sebagai Admin</button>
+            </form>
+
+            <!-- Form Member (Database) -->
+            <form id="member-login-form" onsubmit="handleMemberLogin(event)" class="hidden">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">ID Anggota / NRP</label>
+                    <input type="text" id="member-id" class="glass-input" required placeholder="Contoh: HID-001">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Kata Sandi</label>
+                    <input type="password" id="member-password" class="glass-input" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary w-full" id="member-btn">Masuk sebagai Pengurus</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCREEN: MAIN APP -->
+    <div id="app-container" class="hidden">
+        <nav id="sidebar" class="glass-card">
+            <div class="flex items-center gap-3 mb-8 px-2 mt-4">
+                <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white text-xl shadow-md"><i class="fas fa-mosque"></i></div>
+                <div><h2 class="font-bold text-gray-800 leading-tight">SIM Hidayatullah</h2><p class="text-xs text-gray-500">Mamuju Tengah</p></div>
+            </div>
+
+            <div class="overflow-y-auto flex-1 flex flex-col gap-1 pb-4">
+                <div class="nav-item active" onclick="navigate('dashboard')"><i class="fas fa-chart-pie w-6"></i> Beranda</div>
+                <div class="nav-item" onclick="navigate('profile')"><i class="fas fa-building w-6"></i> Profil Lembaga</div>
+                <div class="nav-item" onclick="navigate('sdm')"><i class="fas fa-users w-6"></i> Data SDM</div>
+                <div class="nav-item" onclick="navigate('proker')"><i class="fas fa-tasks w-6"></i> Program Kerja</div>
+                <div class="nav-item" onclick="navigate('events')"><i class="fas fa-calendar-check w-6"></i> Kegiatan</div>
+                <div class="nav-item admin-only" onclick="navigate('finance')"><i class="fas fa-wallet w-6"></i> Keuangan</div>
+                <div class="nav-item admin-only" onclick="navigate('letters')"><i class="fas fa-envelope-open-text w-6"></i> Persuratan</div>
+                <div class="nav-item admin-only" onclick="navigate('settings')"><i class="fas fa-cog w-6"></i> Pengaturan</div>
+            </div>
+
+            <div class="mt-auto border-t border-gray-200/50 pt-4 px-2">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold" id="user-initial">A</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate" id="user-name">Admin</p>
+                        <p class="text-xs text-gray-500 truncate" id="user-role">Administrator</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="w-full text-left text-sm text-red-500 hover:bg-red-50 p-2 rounded-lg"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+            </div>
+        </nav>
+
+        <main id="main-content">
+            <!-- DASHBOARD -->
+            <div id="view-dashboard" class="page-view active">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Ringkasan Sistem</h1>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-card p-6 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl"><i class="fas fa-users"></i></div>
+                        <div><p class="text-sm text-gray-500">Total Kader</p><h3 class="text-2xl font-bold text-gray-800" id="dash-kader">0</h3></div>
+                    </div>
+                    <div class="glass-card p-6 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl"><i class="fas fa-wallet"></i></div>
+                        <div><p class="text-sm text-gray-500">Saldo Kas (Rp)</p><h3 class="text-2xl font-bold text-gray-800" id="dash-saldo">0</h3></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROFIL -->
+            <div id="view-profile" class="page-view">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Profil Lembaga</h1>
+                <div class="glass-card p-8"><h2 class="text-xl font-bold text-green-700 border-b pb-2 mb-4">Visi</h2><p class="italic text-gray-700">"Menjadi wadah pembinaan umat yang profesional dan berkemajuan di Mamuju Tengah."</p></div>
+            </div>
+
+            <!-- SDM -->
+            <div id="view-sdm" class="page-view">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Data SDM & Kader</h1>
+                <div class="glass-card overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-gray-50 border-b"><th class="p-4 text-sm font-semibold text-gray-600">ID/NRP</th><th class="p-4 text-sm font-semibold text-gray-600">Nama</th><th class="p-4 text-sm font-semibold text-gray-600">Status</th><th class="p-4 text-sm font-semibold text-gray-600">Jabatan</th></tr></thead>
+                        <tbody id="table-members" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PROKER -->
+            <div id="view-proker" class="page-view">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Program Kerja & Realisasi APBO</h1>
+                <div class="glass-card p-6 mb-6 bg-gradient-to-r from-green-50 to-emerald-50 flex flex-wrap gap-6 justify-between items-end">
+                    <div><p class="text-xs text-gray-500">Total Anggaran RAPBO</p><p class="text-xl font-bold" id="rapbo-total">Rp 0</p></div>
+                    <div><p class="text-xs text-gray-500">Realisasi Pengeluaran</p><p class="text-xl font-bold text-blue-600" id="rapbo-realisasi">Rp 0</p></div>
+                    <div class="w-full md:w-1/3"><div class="flex justify-between text-xs mb-1"><span>Serapan</span><span id="rapbo-percent" class="font-bold">0%</span></div><div class="w-full bg-gray-200 rounded-full h-2"><div id="rapbo-bar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div></div></div>
+                </div>
+                <div class="glass-card overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-gray-50 border-b"><th class="p-4 text-sm font-semibold text-gray-600">Program Kerja</th><th class="p-4 text-sm font-semibold text-gray-600">Anggaran</th><th class="p-4 text-sm font-semibold text-gray-600">Progres</th><th class="p-4 text-sm font-semibold text-gray-600">Status</th></tr></thead>
+                        <tbody id="table-proker" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- EVENTS -->
+            <div id="view-events" class="page-view">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Manajemen Kegiatan</h1>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="grid-events"></div>
+            </div>
+
+            <!-- FINANCE (Admin Only) -->
+            <div id="view-finance" class="page-view">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-800">Buku Kas Keuangan</h1>
+                    <button class="btn-primary text-sm" onclick="printReceipt()"><i class="fas fa-file-invoice mr-1"></i> Cetak Kwitansi Terakhir</button>
+                </div>
+                <div class="glass-card overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-gray-50 border-b"><th class="p-4 text-sm font-semibold text-gray-600">Tanggal</th><th class="p-4 text-sm font-semibold text-gray-600">Jenis</th><th class="p-4 text-sm font-semibold text-gray-600">Keterangan</th><th class="p-4 text-sm font-semibold text-gray-600">Nominal (Rp)</th></tr></thead>
+                        <tbody id="table-finance" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LETTERS (Admin Only) -->
+            <div id="view-letters" class="page-view">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Arsip Persuratan</h1>
+                <div class="glass-card overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-gray-50 border-b"><th class="p-4 text-sm font-semibold text-gray-600">No. Surat</th><th class="p-4 text-sm font-semibold text-gray-600">Jenis</th><th class="p-4 text-sm font-semibold text-gray-600">Perihal</th><th class="p-4 text-sm font-semibold text-gray-600">Tanggal</th></tr></thead>
+                        <tbody id="table-letters" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="view-settings" class="page-view">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Pengaturan Sistem</h1>
+                <div class="glass-card p-6"><p class="text-gray-500">Gunakan kredensial Admin Supabase untuk kelola sistem konfigurasi.</p></div>
+            </div>
+        </main>
+
+        <nav id="bottom-nav" class="glass-card">
+            <div class="bottom-nav-item active" onclick="navigate('dashboard')"><i class="fas fa-home"></i><span>Beranda</span></div>
+            <div class="bottom-nav-item" onclick="navigate('sdm')"><i class="fas fa-users"></i><span>SDM</span></div>
+            <div class="bottom-nav-item" onclick="navigate('proker')"><i class="fas fa-tasks"></i><span>Proker</span></div>
+            <div class="bottom-nav-item" onclick="navigate('events')"><i class="fas fa-calendar-alt"></i><span>Kegiatan</span></div>
+        </nav>
+    </div>
+
+    <!-- Template Kwitansi -->
+    <div id="receipt-print-area" class="bg-white p-8 absolute left-[-9999px] w-[800px] text-black">
+        <div class="flex items-center border-b-4 border-green-700 pb-4 mb-6">
+            <div class="w-16 h-16 bg-green-700 rounded-full flex items-center justify-center text-white text-3xl mr-4"><i class="fas fa-mosque"></i></div>
+            <div>
+                <h1 class="text-2xl font-bold uppercase">Lembaga Hidayatullah</h1>
+                <p class="text-sm">Pimpinan Daerah Mamuju Tengah</p>
+                <p class="text-xs text-gray-600">Jl. Poros Tobadak, Kec. Tobadak, Kab. Mamuju Tengah</p>
+            </div>
+        </div>
+        <h2 class="text-center text-xl font-bold underline mb-8 tracking-widest">KWITANSI</h2>
+        <table class="w-full text-left text-lg mb-8">
+            <tr><td class="py-2 w-48 align-top">Telah Terima Dari</td><td class="py-2 w-4 align-top">:</td><td class="py-2 font-bold" id="rec-from">Hamba Allah</td></tr>
+            <tr><td class="py-2 align-top">Uang Sejumlah</td><td class="py-2 align-top">:</td><td class="py-2"><div class="bg-gray-100 p-2 font-bold italic" id="rec-terbilang">Seratus Ribu Rupiah</div></td></tr>
+            <tr><td class="py-2 align-top">Untuk Pembayaran</td><td class="py-2 align-top">:</td><td class="py-2 border-b border-dashed border-gray-400" id="rec-for">Infaq Kegiatan</td></tr>
+        </table>
+        <div class="flex justify-between items-end mt-12">
+            <div class="bg-gray-100 p-4 border-2 border-gray-300 font-bold text-2xl">Rp <span id="rec-amount-num">100.000</span></div>
+            <div class="text-center"><p class="mb-16">Mamuju Tengah, <span id="rec-date">01 Jan 2026</span></p><p class="font-bold underline">Admin Keuangan</p></div>
+        </div>
+    </div>
+
+    <script>
+        const IS_PREVIEW = true; // Set false untuk konek Supabase
+        const SUPABASE_URL = "https://zbvcjkhsghbnhfebebsv.supabase.co/rest/v1/";
+        const SUPABASE_ANON_KEY = "sb_publishable_Ibg6fxi-oFXdlrPU9JDgDw_d7aWSTLr";
+        let supabase;
+        if (!IS_PREVIEW) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const dummyData = {
+            members: [{ id: 'HID-001', name: 'Fahri Husaini', status: 'Pengurus', roles: 'Ketua, Pendidikan' }],
+            proker: [{ name: 'Pelatihan Guru TK', budget: 2000000, progress: 100, status: 'Selesai' }, { name: 'Rakerda 2026', budget: 5000000, progress: 40, status: 'Berjalan' }],
+            finances: [{ date: '2026-10-01', type: 'masuk', desc: 'Infaq Anggota', amount: 1500000 }],
+            events: [{ name: 'Kajian Rutin Pekanan', date: '2026-10-10', status: 'Persiapan', report: '-' }],
+            letters: [{ no: '001/PC-HMT/X/2026', type: 'Undangan', title: 'Undangan Rapat', date: '2026-10-02' }]
+        };
+
+        let currentUser = null;
+
+        function switchLoginTab(type) {
+            document.getElementById('admin-login-form').classList.toggle('hidden', type !== 'admin');
+            document.getElementById('member-login-form').classList.toggle('hidden', type !== 'member');
+            document.getElementById('tab-admin').classList.toggle('border-green-600', type === 'admin');
+            document.getElementById('tab-admin').classList.toggle('text-green-600', type === 'admin');
+        }
+
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            finishLogin({ type: 'admin', name: 'Admin Utama', role: 'Super Admin' });
+        }
+
+        async function handleMemberLogin(e) {
+            e.preventDefault();
+            const id = document.getElementById('member-id').value;
+            const member = dummyData.members.find(m => m.id === id);
+            if(member || IS_PREVIEW) finishLogin({ type: 'member', name: member ? member.name : 'Pengurus', role: member ? member.roles : 'Kader' });
+            else document.getElementById('login-error').textContent = "Data tidak ditemukan";
+        }
+
+        function finishLogin(userData) {
+            currentUser = userData;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('user-name').textContent = userData.name;
+            document.getElementById('user-role').textContent = userData.role;
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', userData.type !== 'admin'));
+            loadDummyData();
+        }
+
+        function handleLogout() {
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            navigate('dashboard');
+        }
+
+        function navigate(viewId) {
+            document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+        }
+
+        function formatRp(angka) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka); }
+
+        function loadDummyData() {
+            document.getElementById('dash-kader').textContent = dummyData.members.length;
+            document.getElementById('table-members').innerHTML = dummyData.members.map(m => `<tr><td class="p-4">${m.id}</td><td class="p-4">${m.name}</td><td class="p-4">${m.status}</td><td class="p-4">${m.roles}</td></tr>`).join('');
+            document.getElementById('table-proker').innerHTML = dummyData.proker.map(p => `<tr><td class="p-4">${p.name}</td><td class="p-4">${formatRp(p.budget)}</td><td class="p-4">${p.progress}%</td><td class="p-4">${p.status}</td></tr>`).join('');
+            document.getElementById('grid-events').innerHTML = dummyData.events.map(e => `<div class="glass-card p-4 border-t-4 border-orange-500"><b>${e.name}</b><br><small>${e.date} • ${e.status}</small></div>`).join('');
+            document.getElementById('table-finance').innerHTML = dummyData.finances.map(f => `<tr><td class="p-4">${f.date}</td><td class="p-4">${f.type}</td><td class="p-4">${f.desc}</td><td class="p-4 font-bold text-green-600">${formatRp(f.amount)}</td></tr>`).join('');
+            document.getElementById('table-letters').innerHTML = dummyData.letters.map(l => `<tr><td class="p-4">${l.no}</td><td class="p-4">${l.type}</td><td class="p-4">${l.title}</td><td class="p-4">${l.date}</td></tr>`).join('');
+            
+            let tBudget = dummyData.proker.reduce((sum, p) => sum + p.budget, 0);
+            let tReal = 0; // dummy value
+            document.getElementById('rapbo-total').textContent = formatRp(tBudget);
+        }
+
+        function ejaAngka(n) {
+            const kata = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+            if (n < 12) return kata[n];
+            if (n < 20) return ejaAngka(n - 10) + " Belas";
+            if (n < 100) return ejaAngka(Math.floor(n / 10)) + " Puluh " + ejaAngka(n % 10);
+            if (n < 200) return "Seratus " + ejaAngka(n - 100);
+            if (n < 1000) return ejaAngka(Math.floor(n / 100)) + " Ratus " + ejaAngka(n % 100);
+            if (n < 2000) return "Seribu " + ejaAngka(n - 1000);
+            if (n < 1000000) return ejaAngka(Math.floor(n / 1000)) + " Ribu " + ejaAngka(n % 1000);
+            if (n < 1000000000) return ejaAngka(Math.floor(n / 1000000)) + " Juta " + ejaAngka(n % 1000000);
+            return "Nominal maksimal tercapai";
+        }
+
+        window.printReceipt = function() {
+            const data = dummyData.finances[0];
+            document.getElementById('rec-terbilang').textContent = ejaAngka(data.amount) + " Rupiah";
+            document.getElementById('rec-for').textContent = data.desc;
+            document.getElementById('rec-amount-num').textContent = data.amount.toLocaleString('id-ID');
+            document.getElementById('rec-date').textContent = data.date;
+            
+            const element = document.getElementById('receipt-print-area');
+            element.style.left = '0'; element.style.display = 'block';
+            html2pdf().set({ margin: 10, filename: 'Kwitansi.pdf', jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' }}).from(element).save().then(() => {
+                element.style.left = '-9999px';
+            });
+        }
+        
+        // PWA Service Worker Inline
+        const sw = `self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));`;
+        const blob = new Blob([sw], { type: 'application/javascript' });
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register(URL.createObjectURL(blob));
+    </script>
+</body>
+</html>
